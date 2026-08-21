@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.env
+.data/
+coverage/
+*.log
+evals/dataset.local.jsonl
+evals/results*.json
