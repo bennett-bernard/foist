@@ -14,47 +14,86 @@ function clipped(value: string, length: number): string {
   return value.length <= length ? value : `${value.slice(0, length - 1)}…`;
 }
 
-export function verdictFor(score: number, foistedThreshold = 75): string {
+export type AiStyleLevel = "LOW" | "MEDIUM" | "HIGH";
+
+const assessmentGifs = [
+  "https://y.yarn.co/4291bbbf-ae6d-452c-bcda-3d4c0d8dcdf8_text.gif",
+  "https://y.yarn.co/40d77296-4930-4aa5-ab3a-92b980eca4bf_text.gif",
+] as const;
+
+export function assessmentGifFor(randomValue = Math.random()): string {
+  return assessmentGifs[randomValue < 0.5 ? 0 : 1];
+}
+
+export function levelFor(score: number, foistedThreshold = 65): AiStyleLevel {
+  if (score >= foistedThreshold) return "HIGH";
+  if (score >= 35) return "MEDIUM";
+  return "LOW";
+}
+
+export function stoplightFor(level: AiStyleLevel): string {
+  if (level === "LOW") return "🟢 ⚫ ⚫";
+  if (level === "MEDIUM") return "⚫ 🟡 ⚫";
+  return "⚫ ⚫ 🔴";
+}
+
+export function verdictFor(score: number, foistedThreshold = 65): string {
   if (score >= foistedThreshold) return ":rotating_light: *YOU GOT FOISTED!* :rotating_light:";
-  if (score < 20) return "NO FOIST DETECTED. This one still has fingerprints.";
-  if (score < 50) {
+  if (score < 15) return "NO FOIST DETECTED. This one still has fingerprints.";
+  if (score < 35) {
     return "This was *SLIGHTLY AI*... the original sender is off the hook... this time.";
   }
   return "FOISTY BUSINESS. The prose has started wearing a blazer.";
-}
-
-function meter(score: number): string {
-  const filled = Math.round(score / 10);
-  return `${"▓".repeat(filled)}${"░".repeat(10 - filled)}`;
 }
 
 export function renderAnalysis(
   analysis: FoistAnalysis,
   pendingId: string | null,
   truncated = false,
-  foistedThreshold = 75,
+  foistedThreshold = 65,
 ): SlackMessageView {
   const score = analysis.aiLikelihoodPercent;
+  const level = levelFor(score, foistedThreshold);
+  const stoplight = stoplightFor(level);
   const signals = analysis.signals.length
     ? analysis.signals.map((signal) => `• ${escapeMrkdwn(clipped(signal, 180))}`).join("\n")
     : "• No single tell carried the verdict.";
+
+  const promptBlocks: KnownBlock[] =
+    level === "HIGH"
+      ? [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: `*Likely prompt behind it*\n> ${escapeMrkdwn(clipped(analysis.likelyPrompt, 500))}`,
+            },
+          },
+        ]
+      : [];
+
+  const reactionGifBlocks: KnownBlock[] =
+    level === "HIGH"
+      ? [
+          {
+            type: "image",
+            image_url: assessmentGifFor(),
+            alt_text: "A playful reaction GIF accompanying Foist's HIGH AI-writing assessment.",
+          },
+        ]
+      : [];
 
   const blocks: KnownBlock[] = [
     {
       type: "section",
       text: {
         type: "mrkdwn",
-        text: `${verdictFor(score, foistedThreshold)}\n\n*AI-ish estimate: ${score}%*  \`${meter(score)}\`\nConfidence: *${analysis.confidence}*`,
+        text: `${verdictFor(score, foistedThreshold)}\n\n${stoplight}  *AI-ish reading: ${level}*`,
       },
     },
+    ...reactionGifBlocks,
     { type: "divider" },
-    {
-      type: "section",
-      text: {
-        type: "mrkdwn",
-        text: `*Likely prompt behind it*\n> ${escapeMrkdwn(clipped(analysis.likelyPrompt, 500))}`,
-      },
-    },
+    ...promptBlocks,
     {
       type: "section",
       text: { type: "mrkdwn", text: `*Foist's evidence board*\n${signals}` },
@@ -77,14 +116,7 @@ export function renderAnalysis(
       elements: [
         {
           type: "mrkdwn",
-          text:
-            ":mag_right: *Double-checked by " +
-            escapeMrkdwn(trace.finalModel) +
-            ".* First pass: " +
-            trace.primaryAiLikelihoodPercent +
-            "%; final: " +
-            score +
-            "%.",
+          text: `:mag_right: *Double-checked by ${escapeMrkdwn(trace.finalModel)}.* The second opinion set this ${level.toLowerCase()} reading.`,
         },
       ],
     });
@@ -126,7 +158,7 @@ export function renderAnalysis(
   }
 
   return {
-    text: `Foist estimates this message is ${score}% AI-ish (${analysis.confidence} confidence).`,
+    text: `Foist gives this message a ${level} AI-ish reading.`,
     blocks,
   };
 }

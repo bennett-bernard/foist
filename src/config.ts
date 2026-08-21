@@ -20,7 +20,7 @@ const assessmentEnvironmentSchema = z
     FOIST_ADJUDICATION_ENABLED: environmentBooleanSchema,
     FOIST_ADJUDICATION_MIN_PERCENT: z.coerce.number().int().min(0).max(100).default(30),
     FOIST_ADJUDICATION_MAX_PERCENT: z.coerce.number().int().min(0).max(100).default(85),
-    FOIST_FOISTED_THRESHOLD: z.coerce.number().int().min(60).max(95).default(75),
+    FOIST_FOISTED_THRESHOLD: z.coerce.number().int().min(60).max(95).default(65),
   })
   .superRefine((value, context) => {
     if (value.FOIST_ADJUDICATION_MIN_PERCENT > value.FOIST_ADJUDICATION_MAX_PERCENT) {

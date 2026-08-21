@@ -2,31 +2,33 @@
 
 Foist is a playful Slack detective for suspiciously polished messages. Forward or paste a message into Foist's DM—or run **Foist this message** from a message's More actions menu—and it returns:
 
-- an **AI-ish writing estimate** with an explicit confidence level;
-- the **likely prompt** behind the message;
-- a short evidence board of writing signals; and
+- an **AI-ish writing level**—LOW, MEDIUM, or HIGH;
+- for HIGH readings, the **likely prompt** behind the message;
+- a short evidence board of writing signals;
+- for HIGH readings, one of two randomly selected reaction GIFs; and
 - for high-signal messages, a deliberately over-AI **Foist-back draft**.
 
-Foist treats its score as entertainment plus writing-style analysis, not proof. Text alone cannot reliably establish who or what authored it.
+Foist treats its reading as entertainment plus writing-style analysis, not proof. Text alone cannot reliably establish who or what authored it.
+
+Foist is an MIT-licensed community project. Each installation uses credentials supplied by its owner; there is no required Foist account or central hosted service.
 
 ## How the assessment works
 
-Every eligible message receives a structured first pass from **gpt-5.6-terra** at medium reasoning. The rubric requires multiple interacting AI-associated style signals, actively looks for human counterevidence, and treats polish, grammar, corporate tone, em dashes, non-native phrasing, and accessibility-related patterns as weak evidence when they appear alone.
+Every eligible message receives a structured first pass from **gpt-5.6-terra** at medium reasoning. The rubric weighs interacting AI-associated style signals against human counterevidence. Individual habits such as polish, grammar, corporate tone, em dashes, non-native phrasing, or accessibility-related patterns are not proof, but a dense cluster is no longer automatically discounted just because each habit can also occur in human writing.
 
 Foist asks **gpt-5.6-sol** for an independent second opinion when the first pass is low-confidence or scores inside the configurable review band (30–85% by default). The adjudicator critiques the first pass instead of averaging it. Its assessment becomes the final result. If that call fails, Foist safely returns the Terra result and marks the second look as unavailable.
 
 This selective cascade spends the more capable model where judgment is ambiguous while keeping obvious cases faster and less expensive. The default medium reasoning effort follows an eval-first approach: raise or lower it only when representative measurements justify the tradeoff.
 
-With the default 75% Foisted threshold:
+Slack displays a simple reading instead of a percentage:
 
-| Estimate | Foist verdict | Foist-back offered? |
+| Reading | Interpretation | Foist-back offered? |
 | --- | --- | --- |
-| 0–19% | No foist detected | No |
-| 20–49% | Slightly AI; off the hook this time | No |
-| 50–74% | Foisty business | No |
-| 75–100% | You got Foisted | Yes, by button or y/n |
+| 🟢 ⚫ ⚫ LOW | Few or isolated AI-style signals | No |
+| ⚫ 🟡 ⚫ MEDIUM | A meaningful cluster of AI-style signals | No |
+| ⚫ ⚫ 🔴 HIGH | Strong, interacting AI-style signals | Yes, by button or y/n |
 
-The threshold is configurable. The draft is returned privately to the requester; Foist never sends it to the original sender automatically.
+Foist still keeps a numeric score internally so routing, thresholds, and evals remain measurable. By default, LOW is below 35, MEDIUM is 35–64, and HIGH begins at 65. The HIGH boundary is configurable. The draft is returned privately to the requester; Foist never sends it to the original sender automatically.
 
 ## Run it locally
 
@@ -54,7 +56,7 @@ Prerequisites:
 
 Open Foist's Messages tab and paste or forward a message. The manifest also installs the **Foist this message** shortcut.
 
-Slack's [Bolt Socket Mode guide](https://docs.slack.dev/tools/bolt-js/concepts/socket-mode) explains the app token and WebSocket connection. The bot subscribes only to message.im and asks for chat:write, im:history, and im:write.
+Slack's [Bolt Socket Mode guide](https://docs.slack.dev/tools/bolt-js/concepts/socket-mode) explains the app token and WebSocket connection. The bot subscribes only to message.im and asks for chat:write, commands, im:history, and im:write. The commands scope enables the message shortcut; Foist does not install a slash command.
 
 ## Configuration
 
@@ -71,7 +73,7 @@ Slack's [Bolt Socket Mode guide](https://docs.slack.dev/tools/bolt-js/concepts/s
 | **FOIST_ADJUDICATION_ENABLED** | No | true | Enables selective second-pass review |
 | **FOIST_ADJUDICATION_MIN_PERCENT** | No | 30 | Inclusive lower edge of review band |
 | **FOIST_ADJUDICATION_MAX_PERCENT** | No | 85 | Inclusive upper edge of review band |
-| **FOIST_FOISTED_THRESHOLD** | No | 75 | Strong verdict and Foist-back boundary, 60–95 |
+| **FOIST_FOISTED_THRESHOLD** | No | 65 | Internal HIGH verdict and Foist-back boundary, 60–95 |
 | **FOIST_PENDING_TTL_MINUTES** | No | 60 | How long a Foist-back case remains available |
 | **FOIST_DATA_PATH** | No | .data/pending.json | Single-process pending-case store |
 | **FOIST_SAFETY_SALT** | Recommended | development value | Salt for privacy-preserving safety IDs |
@@ -105,6 +107,12 @@ npm run eval -- --dataset evals/dataset.local.jsonl --runs 3 --confirm-api-cost
 ~~~
 
 The command refuses to call the API without **--confirm-api-cost**. Dataset construction, holdout guidance, and metric interpretation are in [evals/README.md](./evals/README.md). The example records are disabled templates, not invented ground truth.
+
+## Open source and support
+
+Fork it, remix the jokes, add a verdict, or make the detective stranger. Contributions are welcome through [CONTRIBUTING.md](./CONTRIBUTING.md), and the code is available under the [MIT License](./LICENSE).
+
+Foist is intended to remain free and self-hostable. If it made you laugh—or helped you catch a particularly polished foist—you can [buy Bennett a coffee](https://buymeacoffee.com/bennettbernard).
 
 ## Production container
 

@@ -14,7 +14,7 @@ const routing: AssessmentRoutingConfig = {
   adjudicationEnabled: true,
   adjudicationMinPercent: 30,
   adjudicationMaxPercent: 85,
-  foistedThreshold: 75,
+  foistedThreshold: 65,
 };
 
 function payload(score: number, confidence: FoistAnalysis["confidence"]) {
@@ -56,6 +56,10 @@ test("routes ambiguous primary results to the adjudicator", async () => {
   assert.equal(calls[1]?.model, "gpt-5.6-sol");
   assert.deepEqual(calls[0]?.reasoning, { effort: "medium" });
   assert.deepEqual(calls[1]?.reasoning, { effort: "medium" });
+  assert.equal(calls[1]?.max_output_tokens, 3_000);
+  assert.match(String(calls[0]?.instructions), /Use balanced sensitivity/);
+  assert.match(String(calls[0]?.instructions), /65–84: strong, interacting AI-style signals/);
+  assert.match(String(calls[1]?.instructions), /Check missed AI patterns as carefully as overcalling/);
   assert.equal(result.aiLikelihoodPercent, 82);
   assert.deepEqual(result.assessmentTrace, {
     reviewStatus: "completed",
@@ -63,6 +67,27 @@ test("routes ambiguous primary results to the adjudicator", async () => {
     finalModel: "gpt-5.6-sol",
     primaryAiLikelihoodPercent: 60,
   });
+});
+
+test("retries malformed structured adjudication output", async () => {
+  const calls: unknown[] = [];
+  const errors: unknown[] = [];
+  const engine = new OpenAiFoistEngine({
+    apiKey: "test",
+    routing,
+    client: fakeClient(
+      [payload(60, "medium"), "{\"ai_likelihood_percent\":", payload(82, "high")],
+      calls,
+    ),
+    onAdjudicationError: (error) => errors.push(error),
+  });
+
+  const result = await engine.analyze("A sufficiently long message for a model assessment.", "safe");
+
+  assert.equal(calls.length, 3);
+  assert.equal(errors.length, 0);
+  assert.equal(result.aiLikelihoodPercent, 82);
+  assert.equal(result.assessmentTrace?.reviewStatus, "completed");
 });
 
 test("skips adjudication for confident scores outside the review band", async () => {

@@ -27,6 +27,7 @@
     "scopes": {
       "bot": [
         "chat:write",
+        "commands",
         "im:history",
         "im:write"
       ]

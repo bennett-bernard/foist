@@ -14,7 +14,7 @@ test("uses the Terra to Sol cascade defaults", () => {
     adjudicationEnabled: true,
     adjudicationMinPercent: 30,
     adjudicationMaxPercent: 85,
-    foistedThreshold: 75,
+    foistedThreshold: 65,
   });
 });
 

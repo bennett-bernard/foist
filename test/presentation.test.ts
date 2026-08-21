@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { renderAnalysis, verdictFor } from "../src/presentation.js";
+import {
+  assessmentGifFor,
+  levelFor,
+  renderAnalysis,
+  stoplightFor,
+  verdictFor,
+} from "../src/presentation.js";
 import type { FoistAnalysis } from "../src/types.js";
 
 const base: FoistAnalysis = {
@@ -12,11 +18,54 @@ const base: FoistAnalysis = {
 };
 
 test("uses the expected playful verdict bands", () => {
-  assert.match(verdictFor(19), /NO FOIST/);
-  assert.match(verdictFor(20), /SLIGHTLY AI/);
-  assert.match(verdictFor(50), /FOISTY BUSINESS/);
-  assert.match(verdictFor(75), /YOU GOT FOISTED/);
-  assert.match(verdictFor(70, 70), /YOU GOT FOISTED/);
+  assert.match(verdictFor(14), /NO FOIST/);
+  assert.match(verdictFor(15), /SLIGHTLY AI/);
+  assert.match(verdictFor(35), /FOISTY BUSINESS/);
+  assert.match(verdictFor(65), /YOU GOT FOISTED/);
+  assert.match(verdictFor(60, 60), /YOU GOT FOISTED/);
+});
+
+test("maps private scores to public reading levels", () => {
+  assert.equal(levelFor(34), "LOW");
+  assert.equal(levelFor(35), "MEDIUM");
+  assert.equal(levelFor(64), "MEDIUM");
+  assert.equal(levelFor(65), "HIGH");
+});
+
+test("renders each reading as a horizontal stoplight", () => {
+  assert.equal(stoplightFor("LOW"), "🟢 ⚫ ⚫");
+  assert.equal(stoplightFor("MEDIUM"), "⚫ 🟡 ⚫");
+  assert.equal(stoplightFor("HIGH"), "⚫ ⚫ 🔴");
+});
+
+test("randomly selects between the two assessment GIFs", () => {
+  assert.equal(
+    assessmentGifFor(0.49),
+    "https://y.yarn.co/4291bbbf-ae6d-452c-bcda-3d4c0d8dcdf8_text.gif",
+  );
+  assert.equal(
+    assessmentGifFor(0.5),
+    "https://y.yarn.co/40d77296-4930-4aa5-ab3a-92b980eca4bf_text.gif",
+  );
+});
+
+test("only includes a reaction GIF for HIGH assessments", () => {
+  const low = renderAnalysis(base, null);
+  const medium = renderAnalysis({ ...base, aiLikelihoodPercent: 50 }, null);
+  const high = renderAnalysis({ ...base, aiLikelihoodPercent: 88 }, "pending-id");
+  const highImageBlocks = high.blocks.filter((block) => block.type === "image");
+
+  assert.equal(low.blocks.some((block) => block.type === "image"), false);
+  assert.equal(medium.blocks.some((block) => block.type === "image"), false);
+  assert.equal(highImageBlocks.length, 1);
+  assert.match(JSON.stringify(highImageBlocks), /y\.yarn\.co/);
+  assert.equal(high.blocks[1]?.type, "image");
+});
+
+test("keeps model confidence internal", () => {
+  const view = renderAnalysis({ ...base, confidence: "high" }, null);
+
+  assert.doesNotMatch(JSON.stringify(view), /confidence/i);
 });
 
 test("only offers a Foist-back action for high scores", () => {
@@ -25,11 +74,24 @@ test("only offers a Foist-back action for high scores", () => {
 
   assert.equal(low.blocks.some((block) => block.type === "actions"), false);
   assert.equal(high.blocks.some((block) => block.type === "actions"), true);
-  assert.match(high.text, /88%/);
+  assert.match(JSON.stringify(low), /🟢 ⚫ ⚫/);
+  assert.match(JSON.stringify(high), /⚫ ⚫ 🔴/);
+  assert.match(high.text, /HIGH/);
+  assert.doesNotMatch(JSON.stringify(high), /88%|▓|░/);
+});
+
+test("only reveals the likely prompt for HIGH readings", () => {
+  const low = renderAnalysis(base, null);
+  const medium = renderAnalysis({ ...base, aiLikelihoodPercent: 50 }, null);
+  const high = renderAnalysis({ ...base, aiLikelihoodPercent: 88 }, "pending-id");
+
+  assert.doesNotMatch(JSON.stringify(low), /Likely prompt behind it/);
+  assert.doesNotMatch(JSON.stringify(medium), /Likely prompt behind it/);
+  assert.match(JSON.stringify(high), /Likely prompt behind it/);
 });
 
 test("uses the configured Foisted threshold for actions", () => {
-  const view = renderAnalysis({ ...base, aiLikelihoodPercent: 70 }, "pending-id", false, 70);
+  const view = renderAnalysis({ ...base, aiLikelihoodPercent: 60 }, "pending-id", false, 60);
   assert.equal(view.blocks.some((block) => block.type === "actions"), true);
 });
 
@@ -48,12 +110,13 @@ test("shows second-pass provenance without presenting the score as proof", () =>
     null,
   );
   assert.match(JSON.stringify(view.blocks), /Double-checked by gpt-5\.6-sol/);
-  assert.match(JSON.stringify(view.blocks), /First pass: 63%; final: 72%/);
+  assert.match(JSON.stringify(view.blocks), /second opinion set this high reading/);
+  assert.doesNotMatch(JSON.stringify(view), /63%|72%/);
 });
 
 test("escapes Slack mentions supplied by model output", () => {
   const view = renderAnalysis(
-    { ...base, likelyPrompt: "Ping <@U123> & demand > results" },
+    { ...base, aiLikelihoodPercent: 88, likelyPrompt: "Ping <@U123> & demand > results" },
     null,
   );
   assert.doesNotMatch(JSON.stringify(view.blocks), /<@U123>/);
