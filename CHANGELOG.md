@@ -2,6 +2,15 @@
 
 All notable changes to Foist will be documented here.
 
+## Unreleased
+
+- Added explicit OpenAI, Anthropic, Grok, and Gemini configuration blocks.
+- Added a native Google Gemini adapter using structured Interactions output.
+- Renamed the public xAI provider option to Grok while retaining legacy aliases.
+- Kept a separate OpenAI-compatible option for other Responses-compatible services.
+- Added configurable Grok reasoning effort with a latency-friendly `low` default.
+- Prevented truncated Gemini Foist-back drafts with a larger draft budget, low thinking, and incomplete-response detection.
+
 ## 0.2.0 - 2026-08-22
 
 - Replaced the Terra-to-Sol cascade with one configured provider and model.

@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import type { AiProviderName } from "../config.js";
+import type { AiProviderName, GrokReasoningEffort } from "../config.js";
 import {
   ProviderResponseError,
   type FoistModelProvider,
@@ -7,31 +7,38 @@ import {
   type TextGenerationRequest,
 } from "../model-provider.js";
 
-type OpenAiResponsesProviderName = Exclude<AiProviderName, "anthropic">;
+type OpenAiResponsesProviderName = Extract<
+  AiProviderName,
+  "openai" | "grok" | "openai-compatible"
+>;
 
 export interface OpenAiResponsesProviderOptions {
   providerName: OpenAiResponsesProviderName;
   apiKey: string;
   model: string;
   baseUrl?: string;
+  reasoningEffort?: GrokReasoningEffort;
   client?: OpenAI;
 }
 
 export class OpenAiResponsesProvider implements FoistModelProvider {
   readonly providerName: OpenAiResponsesProviderName;
   readonly model: string;
+  private readonly reasoningEffort: GrokReasoningEffort | undefined;
   private readonly client: OpenAI;
 
   constructor(options: OpenAiResponsesProviderOptions) {
     this.providerName = options.providerName;
     this.model = options.model;
+    const isGrok = options.providerName === "grok";
+    this.reasoningEffort = isGrok ? (options.reasoningEffort ?? "low") : undefined;
     this.client =
       options.client ??
       new OpenAI({
         apiKey: options.apiKey,
         ...(options.baseUrl ? { baseURL: options.baseUrl } : {}),
-        maxRetries: 2,
-        timeout: 30_000,
+        maxRetries: isGrok ? 1 : 2,
+        timeout: isGrok ? 180_000 : 30_000,
       });
   }
 
@@ -49,6 +56,9 @@ export class OpenAiResponsesProvider implements FoistModelProvider {
         },
       },
       max_output_tokens: request.maxOutputTokens,
+      ...(this.reasoningEffort
+        ? { reasoning: { effort: this.reasoningEffort } }
+        : {}),
       ...(this.providerName === "openai"
         ? { safety_identifier: request.safetyIdentifier }
         : {}),
@@ -72,6 +82,9 @@ export class OpenAiResponsesProvider implements FoistModelProvider {
       instructions: request.instructions,
       input: request.input,
       max_output_tokens: request.maxOutputTokens,
+      ...(this.reasoningEffort
+        ? { reasoning: { effort: this.reasoningEffort } }
+        : {}),
       ...(this.providerName === "openai"
         ? { safety_identifier: request.safetyIdentifier }
         : {}),

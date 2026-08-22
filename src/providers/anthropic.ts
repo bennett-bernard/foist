@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { jsonSchemaOutputFormat } from "@anthropic-ai/sdk/helpers/json-schema";
 import {
   ProviderResponseError,
   type FoistModelProvider,
@@ -38,10 +39,9 @@ export class AnthropicProvider implements FoistModelProvider {
       messages: [{ role: "user", content: request.input }],
       metadata: { user_id: request.safetyIdentifier },
       output_config: {
-        format: {
-          type: "json_schema",
-          schema: request.schema,
-        },
+        format: jsonSchemaOutputFormat(
+          request.schema as Parameters<typeof jsonSchemaOutputFormat>[0],
+        ),
       },
     });
     return this.extractText(response);
