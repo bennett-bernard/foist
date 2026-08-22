@@ -1,0 +1,23 @@
+name: Feature request
+description: Suggest a useful or fun improvement.
+title: "[Idea] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What should Foist do differently?
+    validations:
+      required: true
+  - type: textarea
+    id: experience
+    attributes:
+      label: What should the Slack experience look like?
+      description: Include example copy or a flow using invented content.
+  - type: checkboxes
+    id: guardrails
+    attributes:
+      label: Guardrails
+      options:
+        - label: This keeps Foist user-initiated, private, and playful rather than accusatory.
+          required: true

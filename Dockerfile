@@ -16,4 +16,4 @@ COPY --from=build --chown=foist:foist /app/node_modules ./node_modules
 COPY --from=build --chown=foist:foist /app/dist ./dist
 RUN mkdir -p /app/.data && chown foist:foist /app/.data
 USER foist
-CMD ["node", "dist/src/index.js"]
+CMD ["node", "dist/src/self-hosted.js"]

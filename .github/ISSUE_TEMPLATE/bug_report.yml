@@ -1,0 +1,43 @@
+name: Bug report
+description: Report something in Foist that is broken or surprising.
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for helping Foist improve. Do not include private Slack messages, tokens, or API keys.
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: Describe the behavior and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How can we reproduce it?
+      description: Use invented or redacted message text only.
+      placeholder: |
+        1. Start Foist using...
+        2. Send an invented message...
+        3. Observe...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Foist version or commit
+      placeholder: v0.1.0
+  - type: input
+    id: runtime
+    attributes:
+      label: Runtime
+      placeholder: Docker 29 on Ubuntu 24.04, or Node.js 22
+  - type: checkboxes
+    id: secrets
+    attributes:
+      label: Privacy check
+      options:
+        - label: I removed Slack tokens, OpenAI keys, private messages, and personal data.
+          required: true

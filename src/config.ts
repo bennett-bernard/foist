@@ -32,12 +32,21 @@ const assessmentEnvironmentSchema = z
     }
   });
 
-const slackEnvironmentSchema = z.object({
-  SLACK_BOT_TOKEN: z.string().startsWith("xoxb-"),
-  SLACK_APP_TOKEN: z.string().startsWith("xapp-"),
+const runtimeEnvironmentSchema = z.object({
   FOIST_PENDING_TTL_MINUTES: z.coerce.number().positive().max(24 * 60).default(60),
   FOIST_DATA_PATH: z.string().min(1).default(".data/pending.json"),
   FOIST_SAFETY_SALT: z.string().default("foist-local-development"),
+});
+
+const selfHostedSlackEnvironmentSchema = z.object({
+  SLACK_BOT_TOKEN: z.string().startsWith("xoxb-"),
+  SLACK_APP_TOKEN: z.string().startsWith("xapp-"),
+});
+
+const hostedSlackEnvironmentSchema = z.object({
+  SLACK_BOT_TOKEN: z.string().startsWith("xoxb-"),
+  SLACK_SIGNING_SECRET: z.string().min(1),
+  PORT: z.coerce.number().int().min(1).max(65_535).default(3000),
 });
 
 export interface AssessmentRoutingConfig {
@@ -57,14 +66,26 @@ export interface OpenAiAssessmentConfig {
   routing: AssessmentRoutingConfig;
 }
 
-export interface FoistConfig {
-  slackBotToken: string;
-  slackAppToken: string;
+export interface FoistRuntimeConfig {
   openAi: OpenAiAssessmentConfig;
   pendingTtlMs: number;
   dataPath: string;
   safetySalt: string;
 }
+
+export interface SelfHostedConfig extends FoistRuntimeConfig {
+  slackBotToken: string;
+  slackAppToken: string;
+}
+
+export interface HostedConfig extends FoistRuntimeConfig {
+  slackBotToken: string;
+  slackSigningSecret: string;
+  port: number;
+}
+
+/** Backward-compatible name for integrations that imported the original config type. */
+export type FoistConfig = SelfHostedConfig;
 
 export function loadAssessmentConfig(
   environment: NodeJS.ProcessEnv = process.env,
@@ -88,15 +109,37 @@ export function loadAssessmentConfig(
   };
 }
 
-export function loadConfig(environment: NodeJS.ProcessEnv = process.env): FoistConfig {
-  const slack = slackEnvironmentSchema.parse(environment);
+function loadRuntimeConfig(environment: NodeJS.ProcessEnv): FoistRuntimeConfig {
+  const runtime = runtimeEnvironmentSchema.parse(environment);
 
   return {
-    slackBotToken: slack.SLACK_BOT_TOKEN,
-    slackAppToken: slack.SLACK_APP_TOKEN,
     openAi: loadAssessmentConfig(environment),
-    pendingTtlMs: slack.FOIST_PENDING_TTL_MINUTES * 60_000,
-    dataPath: resolve(slack.FOIST_DATA_PATH),
-    safetySalt: slack.FOIST_SAFETY_SALT,
+    pendingTtlMs: runtime.FOIST_PENDING_TTL_MINUTES * 60_000,
+    dataPath: resolve(runtime.FOIST_DATA_PATH),
+    safetySalt: runtime.FOIST_SAFETY_SALT,
   };
 }
+
+export function loadSelfHostedConfig(
+  environment: NodeJS.ProcessEnv = process.env,
+): SelfHostedConfig {
+  const slack = selfHostedSlackEnvironmentSchema.parse(environment);
+  return {
+    ...loadRuntimeConfig(environment),
+    slackBotToken: slack.SLACK_BOT_TOKEN,
+    slackAppToken: slack.SLACK_APP_TOKEN,
+  };
+}
+
+export function loadHostedConfig(environment: NodeJS.ProcessEnv = process.env): HostedConfig {
+  const slack = hostedSlackEnvironmentSchema.parse(environment);
+  return {
+    ...loadRuntimeConfig(environment),
+    slackBotToken: slack.SLACK_BOT_TOKEN,
+    slackSigningSecret: slack.SLACK_SIGNING_SECRET,
+    port: slack.PORT,
+  };
+}
+
+/** Backward-compatible loader for the original Socket Mode entry point. */
+export const loadConfig = loadSelfHostedConfig;

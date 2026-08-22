@@ -1,6 +1,10 @@
 node_modules
 dist
 .env
+.env.*
 .data
 .git
+coverage
+evals/dataset.local.jsonl
+evals/results*.json
 *.log

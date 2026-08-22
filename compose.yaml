@@ -1,0 +1,21 @@
+name: foist
+
+services:
+  foist:
+    build:
+      context: .
+    image: foist:local
+    init: true
+    restart: unless-stopped
+    env_file:
+      - .env
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - foist-data:/app/.data
+
+volumes:
+  foist-data:
