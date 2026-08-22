@@ -4,6 +4,11 @@ All notable changes to Foist will be documented here.
 
 ## Unreleased
 
+- Clarified the Community edition's free, open-source, self-hosted release
+  status and the potential cost of required third-party services.
+- Added a static one-page project site for GitHub Pages with product, edition,
+  and support information.
+
 ## 0.3.1 - 2026-08-22
 
 - Enforced pending-message TTLs on disk with scheduled cleanup, startup/access
