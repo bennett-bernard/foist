@@ -159,7 +159,10 @@ explicit provider variables shown in `.env.example`. Generate a long random
 
 - Submitted text is sent only to the configured model provider. Foist requests
   no response storage where the provider API supports that option.
-- HIGH messages are held locally only until drafted, dismissed, or expired.
+- HIGH messages are removed from Foist's active data file when drafted,
+  dismissed, or expired. An in-process timer enforces the configured TTL, with
+  defensive cleanup on startup and access; filesystem snapshots and backups
+  remain the operator's responsibility.
 - The pending file is created with owner-only permissions.
 - Foist does not log message text.
 - Forwarded content is treated as untrusted data and never followed as instructions.
