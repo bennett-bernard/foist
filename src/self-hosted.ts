@@ -14,7 +14,6 @@ await registerFoistRuntime(app, config);
 registerGracefulShutdown(app);
 await app.start();
 
-const routing = config.openAi.routing;
 console.log(
-  `Foist is listening in Socket Mode with ${routing.primaryModel}; ambiguous cases use ${routing.adjudicatorModel}.`,
+  `Foist is listening in Socket Mode with ${config.ai.provider}/${config.ai.model}.`,
 );

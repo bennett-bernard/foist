@@ -2,7 +2,7 @@ import "dotenv/config";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { loadAssessmentConfig, type AssessmentRoutingConfig } from "../src/config.js";
+import { loadAiConfig } from "../src/config.js";
 import {
   evaluationCaseSchema,
   summarizeEvaluation,
@@ -10,30 +10,16 @@ import {
   type EvaluationMetrics,
   type EvaluationRun,
 } from "../src/evaluation.js";
-import { OpenAiFoistEngine } from "../src/openai-engine.js";
-import type { ReasoningEffort } from "../src/types.js";
+import { ModelFoistEngine } from "../src/foist-engine.js";
+import { createModelProvider } from "../src/providers/index.js";
 
 interface Arguments {
   datasetPath: string;
   runs: number;
-  configuration: string;
   json: boolean;
   confirmed: boolean;
   help: boolean;
 }
-
-interface NamedRouting {
-  name: string;
-  routing: AssessmentRoutingConfig;
-}
-
-const configurationNames = [
-  "primary-low",
-  "primary-medium",
-  "adjudicator-low",
-  "adjudicator-medium",
-  "cascade",
-] as const;
 
 function usage(): string {
   return `Foist model calibration
@@ -43,8 +29,7 @@ Usage:
 
 Options:
   --dataset <path>       JSONL with known-provenance cases (required in practice)
-  --runs <1-10>          Repeats per case and configuration (default: 1)
-  --configuration <name> all, ${configurationNames.join(", ")} (default: all)
+  --runs <1-10>          Repeats per case (default: 1)
   --json                 Emit machine-readable metrics
   --confirm-api-cost     Required before any model calls
   --help                 Show this help
@@ -55,7 +40,6 @@ function parseArguments(argv: string[]): Arguments {
   const parsed: Arguments = {
     datasetPath: "evals/dataset.local.jsonl",
     runs: 1,
-    configuration: "all",
     json: false,
     confirmed: false,
     help: false,
@@ -73,12 +57,6 @@ function parseArguments(argv: string[]): Arguments {
         throw new Error("--runs must be an integer from 1 to 10");
       }
       parsed.runs = value;
-    } else if (argument === "--configuration") {
-      const value = argv[++index];
-      if (!value || (value !== "all" && !configurationNames.includes(value as never))) {
-        throw new Error(`--configuration must be all or one of: ${configurationNames.join(", ")}`);
-      }
-      parsed.configuration = value;
     } else if (argument === "--json") {
       parsed.json = true;
     } else if (argument === "--confirm-api-cost") {
@@ -106,44 +84,19 @@ async function loadDataset(path: string): Promise<EvaluationCase[]> {
     }
   }
   if (!cases.length) throw new Error("The dataset has no enabled evaluation cases");
-  if (!cases.some((item) => item.label === "human") || !cases.some((item) => item.label === "ai")) {
+  if (
+    !cases.some((item) => item.label === "human") ||
+    !cases.some((item) => item.label === "ai")
+  ) {
     throw new Error("The dataset needs at least one enabled human case and one enabled AI case");
   }
   return cases;
 }
 
-function singleModelRouting(
-  base: AssessmentRoutingConfig,
-  model: string,
-  effort: ReasoningEffort,
-): AssessmentRoutingConfig {
-  return {
-    ...base,
-    primaryModel: model,
-    primaryReasoningEffort: effort,
-    draftModel: model,
-    adjudicationEnabled: false,
-  };
-}
-
-function buildConfigurations(base: AssessmentRoutingConfig): NamedRouting[] {
-  return [
-    { name: "primary-low", routing: singleModelRouting(base, base.primaryModel, "low") },
-    { name: "primary-medium", routing: singleModelRouting(base, base.primaryModel, "medium") },
-    {
-      name: "adjudicator-low",
-      routing: singleModelRouting(base, base.adjudicatorModel, "low"),
-    },
-    {
-      name: "adjudicator-medium",
-      routing: singleModelRouting(base, base.adjudicatorModel, "medium"),
-    },
-    { name: "cascade", routing: base },
-  ];
-}
-
 function safetyIdentifier(configuration: string, caseId: string, run: number): string {
-  return createHash("sha256").update(`foist-eval:${configuration}:${caseId}:${run}`).digest("hex");
+  return createHash("sha256")
+    .update(`foist-eval:${configuration}:${caseId}:${run}`)
+    .digest("hex");
 }
 
 function percent(value: number | null): string {
@@ -169,7 +122,6 @@ function tableRows(metrics: EvaluationMetrics[]) {
     ai_mean: score(item.meanAiScore),
     mixed_mean: score(item.meanMixedScore),
     score_stddev: item.meanScoreStandardDeviation.toFixed(2),
-    adjudicated: percent(item.adjudicationRate),
     latency_ms: Math.round(item.averageLatencyMs),
     suggested_threshold: item.thresholdSuggestion?.threshold ?? "n/a",
   }));
@@ -182,15 +134,16 @@ async function main(): Promise<void> {
     return;
   }
 
-  const openAi = loadAssessmentConfig();
+  const ai = loadAiConfig();
   const cases = await loadDataset(args.datasetPath);
-  const allConfigurations = buildConfigurations(openAi.routing);
-  const configurations =
-    args.configuration === "all"
-      ? allConfigurations
-      : allConfigurations.filter((item) => item.name === args.configuration);
+  const configuration = `${ai.provider}:${ai.model}`;
+  const engine = new ModelFoistEngine({
+    provider: createModelProvider(ai),
+    foistedThreshold: ai.foistedThreshold,
+  });
 
-  const maximumCalls = cases.length * args.runs * (configurations.length + Number(configurations.some((item) => item.name === "cascade")));
+  // Normally one call per run; malformed structured output receives one defensive retry.
+  const maximumCalls = cases.length * args.runs * 2;
   if (!args.confirmed) {
     console.error(
       `Refusing to call the API without --confirm-api-cost. This run can make up to ${maximumCalls} model calls.`,
@@ -201,59 +154,49 @@ async function main(): Promise<void> {
   }
 
   const runs: EvaluationRun[] = [];
-  for (const configuration of configurations) {
-    const engine = new OpenAiFoistEngine({
-      apiKey: openAi.apiKey,
-      routing: configuration.routing,
-    });
-    for (const evaluationCase of cases) {
-      for (let run = 1; run <= args.runs; run += 1) {
-        if (!args.json) {
-          console.error(
-            `[${configuration.name}] ${evaluationCase.id} (${run}/${args.runs})`,
-          );
-        }
-        const startedAt = performance.now();
-        try {
-          const result = await engine.analyze(
-            evaluationCase.text,
-            safetyIdentifier(configuration.name, evaluationCase.id, run),
-          );
-          runs.push({
-            configuration: configuration.name,
-            caseId: evaluationCase.id,
-            label: evaluationCase.label,
-            score: result.aiLikelihoodPercent,
-            confidence: result.confidence,
-            reviewStatus: result.assessmentTrace?.reviewStatus ?? "not_needed",
-            latencyMs: performance.now() - startedAt,
-            error: null,
-          });
-        } catch (error) {
-          runs.push({
-            configuration: configuration.name,
-            caseId: evaluationCase.id,
-            label: evaluationCase.label,
-            score: null,
-            confidence: null,
-            reviewStatus: null,
-            latencyMs: performance.now() - startedAt,
-            error: error instanceof Error ? error.name : "UnknownError",
-          });
-        }
+  for (const evaluationCase of cases) {
+    for (let run = 1; run <= args.runs; run += 1) {
+      if (!args.json) {
+        console.error(`[${configuration}] ${evaluationCase.id} (${run}/${args.runs})`);
+      }
+      const startedAt = performance.now();
+      try {
+        const result = await engine.analyze(
+          evaluationCase.text,
+          safetyIdentifier(configuration, evaluationCase.id, run),
+        );
+        runs.push({
+          configuration,
+          caseId: evaluationCase.id,
+          label: evaluationCase.label,
+          score: result.aiLikelihoodPercent,
+          confidence: result.confidence,
+          latencyMs: performance.now() - startedAt,
+          error: null,
+        });
+      } catch (error) {
+        runs.push({
+          configuration,
+          caseId: evaluationCase.id,
+          label: evaluationCase.label,
+          score: null,
+          confidence: null,
+          latencyMs: performance.now() - startedAt,
+          error: error instanceof Error ? error.name : "UnknownError",
+        });
       }
     }
   }
 
-  const metrics = configurations.map((configuration) =>
-    summarizeEvaluation(configuration.name, runs, configuration.routing.foistedThreshold),
-  );
+  const metrics = summarizeEvaluation(configuration, runs, ai.foistedThreshold);
   if (args.json) {
-    console.log(JSON.stringify({ dataset: resolve(args.datasetPath), runs: args.runs, metrics }, null, 2));
+    console.log(
+      JSON.stringify({ dataset: resolve(args.datasetPath), runs: args.runs, metrics }, null, 2),
+    );
     return;
   }
 
-  console.table(tableRows(metrics));
+  console.table(tableRows([metrics]));
   console.log(
     "Threshold suggestions are in-sample only. Confirm them on a held-out set before changing production.",
   );

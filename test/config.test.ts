@@ -1,47 +1,79 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  loadAssessmentConfig,
+  loadAiConfig,
   loadHostedConfig,
   loadSelfHostedConfig,
 } from "../src/config.js";
 
-test("uses the Terra to Sol cascade defaults", () => {
-  const config = loadAssessmentConfig({ OPENAI_API_KEY: "test-key" });
+test("defaults to one OpenAI model and accepts the legacy OpenAI key", () => {
+  const config = loadAiConfig({ OPENAI_API_KEY: "test-key" });
 
-  assert.deepEqual(config.routing, {
-    primaryModel: "gpt-5.6-terra",
-    primaryReasoningEffort: "medium",
-    adjudicatorModel: "gpt-5.6-sol",
-    adjudicatorReasoningEffort: "medium",
-    draftModel: "gpt-5.6-terra",
-    adjudicationEnabled: true,
-    adjudicationMinPercent: 30,
-    adjudicationMaxPercent: 85,
+  assert.deepEqual(config, {
+    provider: "openai",
+    apiKey: "test-key",
+    model: "gpt-5.6-terra",
     foistedThreshold: 65,
   });
 });
 
-test("keeps the legacy model variable as a primary-model fallback", () => {
-  const config = loadAssessmentConfig({
-    OPENAI_API_KEY: "test-key",
-    OPENAI_MODEL: "legacy-model",
-    FOIST_ADJUDICATION_ENABLED: "false",
+test("loads an Anthropic model with the generic key", () => {
+  const config = loadAiConfig({
+    AI_PROVIDER: "anthropic",
+    AI_API_KEY: "anthropic-key",
+    AI_MODEL: "claude-test",
   });
 
-  assert.equal(config.routing.primaryModel, "legacy-model");
-  assert.equal(config.routing.draftModel, "legacy-model");
-  assert.equal(config.routing.adjudicationEnabled, false);
+  assert.equal(config.provider, "anthropic");
+  assert.equal(config.apiKey, "anthropic-key");
+  assert.equal(config.model, "claude-test");
 });
 
-test("rejects an inverted adjudication range", () => {
+test("accepts provider-specific xAI keys and supplies the xAI base URL", () => {
+  const config = loadAiConfig({
+    AI_PROVIDER: "xai",
+    XAI_API_KEY: "xai-key",
+    AI_MODEL: "grok-test",
+  });
+
+  assert.equal(config.apiKey, "xai-key");
+  assert.equal(config.baseUrl, "https://api.x.ai/v1");
+});
+
+test("keeps legacy OpenAI model variables as fallbacks", () => {
+  const config = loadAiConfig({
+    OPENAI_API_KEY: "test-key",
+    OPENAI_MODEL: "legacy-model",
+  });
+
+  assert.equal(config.model, "legacy-model");
+});
+
+test("requires an explicit model for non-OpenAI providers", () => {
   assert.throws(() =>
-    loadAssessmentConfig({
-      OPENAI_API_KEY: "test-key",
-      FOIST_ADJUDICATION_MIN_PERCENT: "90",
-      FOIST_ADJUDICATION_MAX_PERCENT: "40",
+    loadAiConfig({
+      AI_PROVIDER: "anthropic",
+      ANTHROPIC_API_KEY: "test-key",
     }),
   );
+});
+
+test("requires a base URL for generic OpenAI-compatible providers", () => {
+  assert.throws(() =>
+    loadAiConfig({
+      AI_PROVIDER: "openai-compatible",
+      AI_API_KEY: "test-key",
+      AI_MODEL: "compatible-model",
+    }),
+  );
+
+  const config = loadAiConfig({
+    AI_PROVIDER: "openai-compatible",
+    AI_API_KEY: "test-key",
+    AI_MODEL: "compatible-model",
+    AI_BASE_URL: "https://models.example.test/v1",
+  });
+  assert.equal(config.baseUrl, "https://models.example.test/v1");
 });
 
 test("loads Socket Mode credentials separately from shared runtime config", () => {
@@ -52,6 +84,7 @@ test("loads Socket Mode credentials separately from shared runtime config", () =
     FOIST_PENDING_TTL_MINUTES: "15",
   });
 
+  assert.equal(config.ai.provider, "openai");
   assert.equal(config.slackBotToken, "xoxb-test");
   assert.equal(config.slackAppToken, "xapp-test");
   assert.equal(config.pendingTtlMs, 15 * 60_000);

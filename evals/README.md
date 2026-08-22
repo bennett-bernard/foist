@@ -21,7 +21,7 @@ Do not label a real-world message as AI merely because a detector or reviewer th
 
 A useful first study has at least 200 enabled examples, balanced between controlled human and controlled AI writing and spread across short and long Slack-like categories. Keep mixed writing as a separately reported cohort. Deduplicate near-copies and split by author or prompt family so variations of the same source cannot land in both calibration and holdout sets.
 
-## Run the comparison
+## Run the configured model
 
 The runner makes real API calls and refuses to begin unless cost is explicitly confirmed:
 
@@ -29,22 +29,22 @@ The runner makes real API calls and refuses to begin unless cost is explicitly c
 npm run eval -- --dataset evals/dataset.local.jsonl --runs 3 --confirm-api-cost
 ~~~
 
-Compare one setup at a time with **--configuration**, or emit JSON for analysis:
+The runner evaluates the single `AI_PROVIDER` and `AI_MODEL` in `.env`. To emit
+machine-readable results, add `--json`:
 
 ~~~bash
-npm run eval -- --dataset evals/dataset.local.jsonl --configuration cascade --runs 3 --confirm-api-cost --json
+npm run eval -- --dataset evals/dataset.local.jsonl --runs 3 --confirm-api-cost --json
 ~~~
 
-The default comparison includes:
-
-- Terra at low and medium reasoning;
-- Sol at low and medium reasoning; and
-- the production Terra-to-Sol cascade.
-
-The output reports precision, recall, false-positive rate, accuracy, Brier score, calibration error, mean scores by label, score stability across repeats, adjudication rate, latency, and an in-sample threshold suggestion. Failed calls remain visible instead of being silently treated as predictions.
+The output reports precision, recall, false-positive rate, accuracy, Brier
+score, calibration error, mean scores by label, score stability across repeats,
+latency, failures, and an in-sample threshold suggestion. Failed calls remain
+visible instead of being silently treated as predictions.
 
 ## Make a production decision
 
 Choose the setup on a calibration split, then evaluate that frozen choice once on a held-out split. For Foist, false accusations are costlier than missed AI-ish messages, so prefer high precision and a low false-positive rate at the **YOU GOT FOISTED** threshold. Treat the runner's suggested threshold as a candidate, never as final evidence: it is optimized on the same data it reports.
 
-Re-run the held-out evaluation when changing a model snapshot, system prompt, reasoning effort, score rubric, adjudication band, or threshold. Also review errors by message category and length; aggregate accuracy can hide systematic bias.
+Re-run the held-out evaluation when changing a provider, model snapshot, system
+prompt, score rubric, or threshold. Also review errors by message category and
+length; aggregate accuracy can hide systematic bias.

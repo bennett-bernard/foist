@@ -2,6 +2,11 @@
 
 All notable changes to Foist will be documented here.
 
+## Unreleased
+
+- Replaced the Terra-to-Sol cascade with one configured provider and model.
+- Added Anthropic, xAI/Grok, and Responses-compatible provider support.
+
 ## 0.1.0 - 2026-08-22
 
 - Added LOW, MEDIUM, and HIGH stoplight assessments.

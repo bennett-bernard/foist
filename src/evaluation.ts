@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Confidence, ReviewStatus } from "./types.js";
+import type { Confidence } from "./types.js";
 
 export const evaluationLabels = ["human", "ai", "mixed"] as const;
 export type EvaluationLabel = (typeof evaluationLabels)[number];
@@ -41,7 +41,6 @@ export interface EvaluationRun {
   label: EvaluationLabel;
   score: number | null;
   confidence: Confidence | null;
-  reviewStatus: ReviewStatus | null;
   latencyMs: number;
   error: string | null;
 }
@@ -77,7 +76,6 @@ export interface EvaluationMetrics {
   meanAiScore: number | null;
   meanMixedScore: number | null;
   meanScoreStandardDeviation: number;
-  adjudicationRate: number;
   averageLatencyMs: number;
   configuredThreshold: number;
   thresholdSuggestion: ThresholdSuggestion | null;
@@ -231,9 +229,6 @@ export function summarizeEvaluation(
     meanAiScore: labelMean("ai"),
     meanMixedScore: labelMean("mixed"),
     meanScoreStandardDeviation: mean(cases.map((item) => item.scoreStandardDeviation)),
-    adjudicationRate: successful.length
-      ? successful.filter((run) => run.reviewStatus === "completed").length / successful.length
-      : 0,
     averageLatencyMs: successful.length ? mean(successful.map((run) => run.latencyMs)) : 0,
     configuredThreshold,
     thresholdSuggestion: recommendThreshold(cases),

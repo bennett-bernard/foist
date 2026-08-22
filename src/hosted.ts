@@ -13,7 +13,6 @@ await registerFoistRuntime(app, config);
 registerGracefulShutdown(app);
 await app.start(config.port);
 
-const routing = config.openAi.routing;
 console.log(
-  `Foist is listening over HTTP on port ${config.port} with ${routing.primaryModel}; ambiguous cases use ${routing.adjudicatorModel}.`,
+  `Foist is listening over HTTP on port ${config.port} with ${config.ai.provider}/${config.ai.model}.`,
 );

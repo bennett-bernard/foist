@@ -1,25 +1,24 @@
 import type { App } from "@slack/bolt";
 import { registerFoistHandlers } from "./app.js";
 import type { FoistRuntimeConfig } from "./config.js";
-import { OpenAiFoistEngine } from "./openai-engine.js";
+import { ModelFoistEngine } from "./foist-engine.js";
 import { PendingFoistStore } from "./pending-store.js";
+import { createModelProvider } from "./providers/index.js";
 
 export async function registerFoistRuntime(app: App, config: FoistRuntimeConfig): Promise<void> {
   const store = new PendingFoistStore(config.dataPath, config.pendingTtlMs);
   await store.init();
 
-  const engine = new OpenAiFoistEngine({
-    apiKey: config.openAi.apiKey,
-    routing: config.openAi.routing,
-    onAdjudicationError: (error) =>
-      console.warn("Foist adjudication failed; using first pass", error),
+  const engine = new ModelFoistEngine({
+    provider: createModelProvider(config.ai),
+    foistedThreshold: config.ai.foistedThreshold,
   });
 
   registerFoistHandlers(app, {
     engine,
     store,
     safetySalt: config.safetySalt,
-    foistedThreshold: config.openAi.routing.foistedThreshold,
+    foistedThreshold: config.ai.foistedThreshold,
   });
 }
 

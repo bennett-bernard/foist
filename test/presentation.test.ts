@@ -95,24 +95,6 @@ test("uses the configured Foisted threshold for actions", () => {
   assert.equal(view.blocks.some((block) => block.type === "actions"), true);
 });
 
-test("shows second-pass provenance without presenting the score as proof", () => {
-  const view = renderAnalysis(
-    {
-      ...base,
-      aiLikelihoodPercent: 72,
-      assessmentTrace: {
-        reviewStatus: "completed",
-        primaryModel: "gpt-5.6-terra",
-        finalModel: "gpt-5.6-sol",
-        primaryAiLikelihoodPercent: 63,
-      },
-    },
-    null,
-  );
-  assert.match(JSON.stringify(view.blocks), /Double-checked by gpt-5\.6-sol/);
-  assert.match(JSON.stringify(view.blocks), /second opinion set this high reading/);
-  assert.doesNotMatch(JSON.stringify(view), /63%|72%/);
-});
 
 test("escapes Slack mentions supplied by model output", () => {
   const view = renderAnalysis(

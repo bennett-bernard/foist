@@ -19,7 +19,7 @@ proof. Text alone cannot reliably establish who or what authored it.
 
 | Edition | Slack connection | Credentials and hosting | Status |
 | --- | --- | --- | --- |
-| **Community self-hosted** | Socket Mode | You provide a Slack app, an OpenAI key, and a machine | Ready |
+| **Community self-hosted** | Socket Mode | You provide a Slack app, a supported model-provider key, and a machine | Ready |
 | **Hosted foundation** | HTTP Events API | Single-workspace development only | Not yet a public multi-workspace service |
 
 The Community edition is MIT licensed, requires no Foist account, and has no
@@ -29,16 +29,13 @@ it can become a paid Slack Marketplace app.
 
 ## How the assessment works
 
-Every eligible message receives a structured first pass from
-**gpt-5.6-terra** at medium reasoning. The rubric weighs interacting
-AI-associated style signals against human counterevidence. Individual habits
-such as polish, grammar, corporate tone, em dashes, non-native phrasing, or
-accessibility-related patterns are not proof.
+Every eligible message gets one structured assessment from the provider and
+model selected in `.env`. Foist-back uses that same model, but only after someone
+explicitly requests a draft; there is no second model or review pass.
 
-Foist asks **gpt-5.6-sol** for an independent second opinion when the first pass
-is low-confidence or scores inside the configurable review band—30–85% by
-default. The adjudicator critiques the first pass instead of averaging it. If
-that optional call fails, Foist returns the validated Terra result.
+The rubric weighs interacting AI-associated style signals against human
+counterevidence. Individual habits such as polish, grammar, corporate tone, em
+dashes, non-native phrasing, or accessibility-related patterns are not proof.
 
 Slack displays a reading rather than a percentage:
 
@@ -48,7 +45,7 @@ Slack displays a reading rather than a percentage:
 | ⚫ 🟡 ⚫ MEDIUM | A meaningful cluster of AI-style signals | No |
 | ⚫ ⚫ 🔴 HIGH | Strong, interacting AI-style signals | Yes |
 
-Foist keeps a numeric score internally for routing and evaluation. LOW is below
+Foist keeps a numeric score internally for levels and evaluation. LOW is below
 35, MEDIUM is 35–64, and HIGH begins at 65 by default. The draft is returned
 privately to the requester; Foist never sends it to the original sender.
 
@@ -58,7 +55,7 @@ Prerequisites:
 
 - Node.js 22 or newer
 - a Slack workspace where you can install apps
-- an OpenAI API key
+- an API key from OpenAI, Anthropic, xAI, or a compatible provider
 
 1. Go to [Slack's app dashboard](https://api.slack.com/apps), choose
    **Create New App → From an app manifest**, and paste
@@ -123,30 +120,38 @@ docker run --env-file .env -v foist-data:/app/.data foist
 | **SLACK_APP_TOKEN** | Self-hosted | — | Socket Mode app token |
 | **SLACK_SIGNING_SECRET** | Hosted HTTP | — | Verifies Slack HTTP requests |
 | **PORT** | Hosted HTTP | 3000 | HTTP listener port |
-| **OPENAI_API_KEY** | Yes | — | Server-side model access |
-| **OPENAI_PRIMARY_MODEL** | No | gpt-5.6-terra | First-pass model |
-| **OPENAI_ADJUDICATOR_MODEL** | No | gpt-5.6-sol | Second-pass model |
-| **OPENAI_DRAFT_MODEL** | No | primary model | Foist-back model |
-| **FOIST_PRIMARY_REASONING** | No | medium | Primary reasoning effort |
-| **FOIST_ADJUDICATOR_REASONING** | No | medium | Adjudicator reasoning effort |
-| **FOIST_ADJUDICATION_ENABLED** | No | true | Enables selective review |
-| **FOIST_ADJUDICATION_MIN_PERCENT** | No | 30 | Review-band lower edge |
-| **FOIST_ADJUDICATION_MAX_PERCENT** | No | 85 | Review-band upper edge |
+| **AI_PROVIDER** | No | openai | `openai`, `anthropic`, `xai`, or `openai-compatible` |
+| **AI_API_KEY** | Yes, or use a provider alias | — | Key issued by the selected provider |
+| **AI_MODEL** | Provider-dependent | gpt-5.6-terra for OpenAI | The one model used by Foist |
+| **AI_BASE_URL** | Compatible only | xAI is automatic | Responses API base URL |
 | **FOIST_FOISTED_THRESHOLD** | No | 65 | HIGH and Foist-back boundary |
 | **FOIST_PENDING_TTL_MINUTES** | No | 60 | Pending draft lifetime |
 | **FOIST_DATA_PATH** | No | .data/pending.json | Single-process pending store |
 | **FOIST_SAFETY_SALT** | Recommended | development value | Privacy-preserving safety IDs |
 
-`OPENAI_MODEL` remains supported as a legacy fallback for the primary model.
-Generate a long random **FOIST_SAFETY_SALT** outside local development.
+Provider behavior:
+
+| Provider | API used | Extra setup |
+| --- | --- | --- |
+| **openai** | OpenAI Responses | None |
+| **anthropic** | Anthropic Messages | Set an Anthropic model in `AI_MODEL` |
+| **xai** | xAI Responses | Set a Grok model; the base URL is automatic |
+| **openai-compatible** | Responses-compatible endpoint | Set `AI_MODEL` and `AI_BASE_URL`; JSON-schema output must be supported |
+
+`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, and `XAI_API_KEY` remain supported as
+provider-specific key aliases. `OPENAI_MODEL` and `OPENAI_PRIMARY_MODEL` remain
+OpenAI model fallbacks for existing installs. New installations should use the
+generic `AI_*` variables. Generate a long random **FOIST_SAFETY_SALT** outside
+local development.
 
 ## Privacy and reliability
 
-- Submitted text is sent to the OpenAI Responses API with storage disabled.
+- Submitted text is sent only to the configured model provider. Foist requests
+  no response storage where the provider API supports that option.
 - HIGH messages are held locally only until drafted, dismissed, or expired.
 - The pending file is created with owner-only permissions.
 - Foist does not log message text.
-- Forwarded content and first-pass results are treated as untrusted data.
+- Forwarded content is treated as untrusted data and never followed as instructions.
 - Model responses use strict JSON schemas plus application-side validation.
 - API calls have a 30-second timeout and two automatic retries.
 - Inputs shorter than 40 characters are marked inconclusive.
@@ -186,9 +191,9 @@ metering, onboarding, and a deletion/uninstall flow.
 
 ## Evaluate model or threshold changes
 
-Use only consenting, known-provenance examples. The runner compares Terra and
-Sol at low and medium reasoning against the production cascade and reports
-classification, calibration, stability, latency, and adjudication metrics.
+Use only consenting, known-provenance examples. The runner tests the exact
+`AI_PROVIDER` and `AI_MODEL` configured in `.env`, reporting classification,
+calibration, stability, latency, failures, and a candidate threshold.
 
 ```bash
 cp evals/dataset.example.jsonl evals/dataset.local.jsonl
@@ -207,7 +212,7 @@ npm run build
 npm run eval -- --help
 ```
 
-The unit suite uses fake model clients and needs no live Slack or OpenAI
+The unit suite uses fake model clients and needs no live Slack or model-provider
 credentials. Pull requests should follow [CONTRIBUTING.md](./CONTRIBUTING.md)
 and the project [code of conduct](./CODE_OF_CONDUCT.md). Security reports belong
 in the private process described by [SECURITY.md](./SECURITY.md).
@@ -218,7 +223,9 @@ in the private process described by [SECURITY.md](./SECURITY.md).
 - **src/bootstrap.ts** — shared assessment-engine and handler bootstrap
 - **src/self-hosted.ts** — Community Socket Mode entry point
 - **src/hosted.ts** — single-workspace HTTP development entry point
-- **src/openai-engine.ts** — model routing, assessment, fallback, and drafting
+- **src/foist-engine.ts** — provider-neutral assessment and drafting
+- **src/model-provider.ts** — model-provider interface
+- **src/providers/** — OpenAI Responses, xAI/compatible, and Anthropic adapters
 - **src/evaluation.ts** — evaluation schema and metrics
 - **scripts/evaluate.ts** — cost-confirmed evaluation runner
 - **src/presentation.ts** — Block Kit responses and thresholds

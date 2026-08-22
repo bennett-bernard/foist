@@ -8,12 +8,11 @@ import {
 
 function run(caseId: string, label: "human" | "ai" | "mixed", score: number): EvaluationRun {
   return {
-    configuration: "cascade",
+    configuration: "test:model",
     caseId,
     label,
     score,
     confidence: "medium",
-    reviewStatus: "completed",
     latencyMs: 100,
     error: null,
   };
@@ -21,7 +20,7 @@ function run(caseId: string, label: "human" | "ai" | "mixed", score: number): Ev
 
 test("computes threshold and calibration metrics from per-case scores", () => {
   const metrics = summarizeEvaluation(
-    "cascade",
+    "test:model",
     [
       run("human-low", "human", 10),
       run("human-high", "human", 80),
@@ -35,14 +34,13 @@ test("computes threshold and calibration metrics from per-case scores", () => {
   assert.equal(metrics.recall, 0.5);
   assert.equal(metrics.falsePositiveRate, 0.5);
   assert.equal(metrics.accuracy, 0.5);
-  assert.equal(metrics.adjudicationRate, 1);
   assert.equal(metrics.averageLatencyMs, 100);
   assert.equal(metrics.thresholdSuggestion?.metTargetPrecision, true);
 });
 
 test("aggregates repeated runs before evaluating a case", () => {
   const metrics = summarizeEvaluation(
-    "cascade",
+    "test:model",
     [
       run("human", "human", 10),
       run("human", "human", 20),

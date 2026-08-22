@@ -109,29 +109,6 @@ export function renderAnalysis(
     },
   ];
 
-  const trace = analysis.assessmentTrace;
-  if (trace?.reviewStatus === "completed") {
-    blocks.push({
-      type: "context",
-      elements: [
-        {
-          type: "mrkdwn",
-          text: `:mag_right: *Double-checked by ${escapeMrkdwn(trace.finalModel)}.* The second opinion set this ${level.toLowerCase()} reading.`,
-        },
-      ],
-    });
-  } else if (trace?.reviewStatus === "failed") {
-    blocks.push({
-      type: "context",
-      elements: [
-        {
-          type: "mrkdwn",
-          text: ":warning: _The second look was unavailable, so this uses the validated first pass._",
-        },
-      ],
-    });
-  }
-
   if (score >= foistedThreshold && pendingId) {
     blocks.push({
       type: "actions",

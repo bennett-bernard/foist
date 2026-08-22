@@ -17,14 +17,14 @@ friendlier installation paths, and new jokes are welcome.
    npm run build
    ~~~
 
-The unit suite does not require Slack or OpenAI credentials.
+The unit suite does not require Slack or model-provider credentials.
 
 ## Good contributions
 
 - Fix bugs without expanding Slack permissions.
 - Improve accessibility, onboarding, or deployment documentation.
 - Add playful verdicts that remain kind rather than accusatory.
-- Improve evaluation metrics or model routing with tests.
+- Improve evaluation metrics or provider adapters with tests.
 - Add integrations that preserve private, user-initiated behavior.
 
 For calibration work, use consenting, known-provenance samples and follow
