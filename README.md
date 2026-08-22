@@ -55,7 +55,8 @@ Prerequisites:
 
 - Node.js 22 or newer
 - a Slack workspace where you can install apps
-- an API key from OpenAI, Anthropic, xAI, or a compatible provider
+- an API key from OpenAI, Anthropic, xAI (Grok), Google (Gemini), or a
+  compatible provider
 
 1. Go to [Slack's app dashboard](https://api.slack.com/apps), choose
    **Create New App → From an app manifest**, and paste
@@ -120,10 +121,19 @@ docker run --env-file .env -v foist-data:/app/.data foist
 | **SLACK_APP_TOKEN** | Self-hosted | — | Socket Mode app token |
 | **SLACK_SIGNING_SECRET** | Hosted HTTP | — | Verifies Slack HTTP requests |
 | **PORT** | Hosted HTTP | 3000 | HTTP listener port |
-| **AI_PROVIDER** | No | openai | `openai`, `anthropic`, `xai`, or `openai-compatible` |
-| **AI_API_KEY** | Yes, or use a provider alias | — | Key issued by the selected provider |
-| **AI_MODEL** | Provider-dependent | gpt-5.6-terra for OpenAI | The one model used by Foist |
-| **AI_BASE_URL** | Compatible only | xAI is automatic | Responses API base URL |
+| **AI_PROVIDER** | No | openai | `openai`, `anthropic`, `grok`, `gemini`, or `openai-compatible` |
+| **OPENAI_API_KEY** | OpenAI | — | OpenAI key |
+| **OPENAI_MODEL** | OpenAI | gpt-5.6-terra | OpenAI model used by Foist |
+| **ANTHROPIC_API_KEY** | Anthropic | — | Anthropic key |
+| **ANTHROPIC_MODEL** | Anthropic | — | Claude model used by Foist |
+| **GROK_API_KEY** | Grok | — | xAI key |
+| **GROK_MODEL** | Grok | — | Grok model used by Foist |
+| **GROK_REASONING_EFFORT** | Grok | low | `low`, `medium`, `high`, or `xhigh` |
+| **GEMINI_API_KEY** | Gemini | — | Google Gemini key |
+| **GEMINI_MODEL** | Gemini | — | Gemini model used by Foist |
+| **COMPATIBLE_API_KEY** | Compatible | — | Key for another Responses-compatible service |
+| **COMPATIBLE_MODEL** | Compatible | — | Model exposed by that service |
+| **COMPATIBLE_BASE_URL** | Compatible | — | Responses API base URL |
 | **FOIST_FOISTED_THRESHOLD** | No | 65 | HIGH and Foist-back boundary |
 | **FOIST_PENDING_TTL_MINUTES** | No | 60 | Pending draft lifetime |
 | **FOIST_DATA_PATH** | No | .data/pending.json | Single-process pending store |
@@ -134,15 +144,16 @@ Provider behavior:
 | Provider | API used | Extra setup |
 | --- | --- | --- |
 | **openai** | OpenAI Responses | None |
-| **anthropic** | Anthropic Messages | Set an Anthropic model in `AI_MODEL` |
-| **xai** | xAI Responses | Set a Grok model; the base URL is automatic |
-| **openai-compatible** | Responses-compatible endpoint | Set `AI_MODEL` and `AI_BASE_URL`; JSON-schema output must be supported |
+| **anthropic** | Anthropic Messages | Set `ANTHROPIC_API_KEY` and `ANTHROPIC_MODEL` |
+| **grok** | xAI Responses | Set `GROK_API_KEY` and `GROK_MODEL`; reasoning defaults to `low` |
+| **gemini** | Google Gemini Interactions | Set `GEMINI_API_KEY` and `GEMINI_MODEL` |
+| **openai-compatible** | Responses-compatible endpoint | Set all three `COMPATIBLE_*` variables; JSON-schema output must be supported |
 
-`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, and `XAI_API_KEY` remain supported as
-provider-specific key aliases. `OPENAI_MODEL` and `OPENAI_PRIMARY_MODEL` remain
-OpenAI model fallbacks for existing installs. New installations should use the
-generic `AI_*` variables. Generate a long random **FOIST_SAFETY_SALT** outside
-local development.
+For upgrades, `AI_API_KEY`, `AI_MODEL`, and `AI_BASE_URL` remain supported as
+generic fallbacks. `AI_PROVIDER=xai`, `XAI_API_KEY`, `XAI_MODEL`, and
+`OPENAI_PRIMARY_MODEL` also remain supported. New installations should use the
+explicit provider variables shown in `.env.example`. Generate a long random
+**FOIST_SAFETY_SALT** outside local development.
 
 ## Privacy and reliability
 
@@ -153,7 +164,8 @@ local development.
 - Foist does not log message text.
 - Forwarded content is treated as untrusted data and never followed as instructions.
 - Model responses use strict JSON schemas plus application-side validation.
-- API calls have a 30-second timeout and two automatic retries.
+- Grok gets a three-minute timeout and one retry for reasoning latency; other
+  providers get a 30-second timeout and two retries.
 - Inputs shorter than 40 characters are marked inconclusive.
 - Inputs over 12,000 characters are clearly reported as truncated.
 - Each user can request eight analyses per minute in one process.
@@ -192,7 +204,7 @@ metering, onboarding, and a deletion/uninstall flow.
 ## Evaluate model or threshold changes
 
 Use only consenting, known-provenance examples. The runner tests the exact
-`AI_PROVIDER` and `AI_MODEL` configured in `.env`, reporting classification,
+`AI_PROVIDER` and provider-specific model configured in `.env`, reporting classification,
 calibration, stability, latency, failures, and a candidate threshold.
 
 ```bash
@@ -225,7 +237,7 @@ in the private process described by [SECURITY.md](./SECURITY.md).
 - **src/hosted.ts** — single-workspace HTTP development entry point
 - **src/foist-engine.ts** — provider-neutral assessment and drafting
 - **src/model-provider.ts** — model-provider interface
-- **src/providers/** — OpenAI Responses, xAI/compatible, and Anthropic adapters
+- **src/providers/** — native OpenAI, Anthropic, Grok, Gemini, and compatible adapters
 - **src/evaluation.ts** — evaluation schema and metrics
 - **scripts/evaluate.ts** — cost-confirmed evaluation runner
 - **src/presentation.ts** — Block Kit responses and thresholds

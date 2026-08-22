@@ -29,8 +29,9 @@ The runner makes real API calls and refuses to begin unless cost is explicitly c
 npm run eval -- --dataset evals/dataset.local.jsonl --runs 3 --confirm-api-cost
 ~~~
 
-The runner evaluates the single `AI_PROVIDER` and `AI_MODEL` in `.env`. To emit
-machine-readable results, add `--json`:
+The runner evaluates the single `AI_PROVIDER` and its provider-specific model
+variable in `.env` (for example, `GEMINI_MODEL`). To emit machine-readable
+results, add `--json`:
 
 ~~~bash
 npm run eval -- --dataset evals/dataset.local.jsonl --runs 3 --confirm-api-cost --json
