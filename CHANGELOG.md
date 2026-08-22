@@ -4,6 +4,8 @@ All notable changes to Foist will be documented here.
 
 ## Unreleased
 
+## 0.3.0 - 2026-08-22
+
 - Added explicit OpenAI, Anthropic, Grok, and Gemini configuration blocks.
 - Added a native Google Gemini adapter using structured Interactions output.
 - Renamed the public xAI provider option to Grok while retaining legacy aliases.
