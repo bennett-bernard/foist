@@ -2,10 +2,11 @@
 
 [![CI](https://github.com/bennett-bernard/foist/actions/workflows/ci.yml/badge.svg)](https://github.com/bennett-bernard/foist/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
+[![Latest release](https://img.shields.io/github/v/release/bennett-bernard/foist)](https://github.com/bennett-bernard/foist/releases/latest)
 
-Foist is a playful Slack detective for suspiciously polished messages. Forward
-or paste a message into Foist's DM—or run **Foist this message** from a
-message's More actions menu—and it returns:
+Foist is a free, open-source, self-hosted Slack detective for suspiciously
+polished messages. Forward or paste a message into Foist's DM—or run **Foist
+this message** from a message's More actions menu—and it returns:
 
 - an **AI-ish writing level**—LOW, MEDIUM, or HIGH;
 - a short evidence board of writing signals;
@@ -15,17 +16,30 @@ message's More actions menu—and it returns:
 Foist treats every reading as entertainment plus writing-style analysis, not
 proof. Text alone cannot reliably establish who or what authored it.
 
+## Free and open source
+
+The Community edition is officially released under the [MIT License](./LICENSE).
+You may use, copy, modify, and redistribute the software without paying Foist.
+It requires no Foist account, subscription, license key, or central Foist
+service.
+
+Foist is self-hosted: you operate it and provide a Slack workspace, a machine
+running Node.js or Docker, and a supported model-provider API key. Slack, model
+providers, and hosting companies may impose their own limits or charges. “Free”
+describes the Foist software and license; it does not make those third-party
+services free.
+
 ## Choose your edition
 
 | Edition | Slack connection | Credentials and hosting | Status |
 | --- | --- | --- | --- |
-| **Community self-hosted** | Socket Mode | You provide a Slack app, a supported model-provider key, and a machine | Ready |
-| **Hosted foundation** | HTTP Events API | Single-workspace development only | Not yet a public multi-workspace service |
+| **Community self-hosted** | Socket Mode | You provide a Slack app, a supported model-provider key, and a machine | Released |
+| **Hosted foundation** | HTTP Events API | Single-workspace development only | Development foundation only |
 
-The Community edition is MIT licensed, requires no Foist account, and has no
-central Foist service. The hosted entry point shares the same assessment core
-but still needs OAuth, shared storage, billing, and production operations before
-it can become a paid Slack Marketplace app.
+Only the Community self-hosted edition is a public release. The hosted entry
+point shares the same assessment core but still needs OAuth, shared storage,
+billing, and production operations before it can become a public Slack
+Marketplace service.
 
 ## How the assessment works
 
