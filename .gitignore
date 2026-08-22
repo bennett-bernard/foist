@@ -9,3 +9,6 @@ coverage/
 *.log
 evals/dataset.local.jsonl
 evals/results*.json
+
+# Keep the current third-party Slack artwork local-only.
+assets/ld_muppet_pic.png

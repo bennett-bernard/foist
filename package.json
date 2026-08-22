@@ -1,6 +1,6 @@
 {
   "name": "foist-slack-bot",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "license": "MIT",
   "description": "A playful Slack bot that estimates AI writing signals and drafts gloriously AI-sounding replies.",

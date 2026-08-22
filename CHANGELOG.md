@@ -2,7 +2,7 @@
 
 All notable changes to Foist will be documented here.
 
-## Unreleased
+## 0.2.0 - 2026-08-22
 
 - Replaced the Terra-to-Sol cascade with one configured provider and model.
 - Added Anthropic, xAI/Grok, and Responses-compatible provider support.
