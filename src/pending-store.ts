@@ -19,10 +19,15 @@ const storeSchema = z.object({
   entries: z.array(pendingFoistSchema),
 });
 
+const maximumTimerDelayMs = 2_147_483_647;
+const cleanupRetryDelayMs = 1_000;
+
 export class PendingFoistStore {
   private readonly entries = new Map<string, PendingFoist>();
   private loadPromise: Promise<void> | undefined;
   private mutationChain = Promise.resolve();
+  private cleanupTimer: ReturnType<typeof setTimeout> | undefined;
+  private persistenceDirty = false;
 
   constructor(
     private readonly path: string,
@@ -47,34 +52,45 @@ export class PendingFoistStore {
       };
       this.entries.set(entry.id, entry);
       await this.persist();
+      this.persistenceDirty = false;
+      this.scheduleNextCleanup();
       return entry;
     });
   }
 
   async getByIdForUser(id: string, userId: string): Promise<PendingFoist | null> {
     await this.ensureLoaded();
-    this.removeExpired();
-    const entry = this.entries.get(id);
-    return entry?.userId === userId ? entry : null;
+    return this.enqueue(async () => {
+      await this.purgeExpiredFromDisk();
+      this.scheduleNextCleanup();
+      const entry = this.entries.get(id);
+      return entry?.userId === userId ? entry : null;
+    });
   }
 
   async getLatestForUser(userId: string): Promise<PendingFoist | null> {
     await this.ensureLoaded();
-    this.removeExpired();
-    let latest: PendingFoist | null = null;
-    for (const entry of this.entries.values()) {
-      if (entry.userId === userId && (!latest || entry.createdAt > latest.createdAt)) {
-        latest = entry;
+    return this.enqueue(async () => {
+      await this.purgeExpiredFromDisk();
+      this.scheduleNextCleanup();
+      let latest: PendingFoist | null = null;
+      for (const entry of this.entries.values()) {
+        if (entry.userId === userId && (!latest || entry.createdAt > latest.createdAt)) {
+          latest = entry;
+        }
       }
-    }
-    return latest;
+      return latest;
+    });
   }
 
   async delete(id: string): Promise<void> {
     await this.ensureLoaded();
     await this.enqueue(async () => {
-      if (!this.entries.delete(id)) return;
+      const removedExpired = this.removeExpired();
+      if (!this.entries.delete(id) && !removedExpired) return;
       await this.persist();
+      this.persistenceDirty = false;
+      this.scheduleNextCleanup();
     });
   }
 
@@ -88,18 +104,65 @@ export class PendingFoistStore {
       const contents = await readFile(this.path, "utf8");
       const parsed = storeSchema.parse(JSON.parse(contents));
       for (const entry of parsed.entries) this.entries.set(entry.id, entry);
-      this.removeExpired();
+      await this.purgeExpiredFromDisk();
+      this.scheduleNextCleanup();
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
       throw new Error(`Could not load pending Foist data at ${this.path}`, { cause: error });
     }
   }
 
-  private removeExpired(): void {
+  private removeExpired(): boolean {
     const now = this.now();
+    let removed = false;
     for (const [id, entry] of this.entries) {
-      if (entry.expiresAt <= now) this.entries.delete(id);
+      if (entry.expiresAt <= now) {
+        this.entries.delete(id);
+        removed = true;
+      }
     }
+    return removed;
+  }
+
+  private async purgeExpiredFromDisk(): Promise<void> {
+    if (this.removeExpired()) this.persistenceDirty = true;
+    if (!this.persistenceDirty) return;
+
+    await this.persist();
+    this.persistenceDirty = false;
+  }
+
+  private scheduleNextCleanup(): void {
+    if (this.cleanupTimer) clearTimeout(this.cleanupTimer);
+    this.cleanupTimer = undefined;
+
+    let nextExpiry: number | undefined;
+    for (const entry of this.entries.values()) {
+      if (nextExpiry === undefined || entry.expiresAt < nextExpiry) {
+        nextExpiry = entry.expiresAt;
+      }
+    }
+    if (nextExpiry === undefined) return;
+
+    this.armCleanup(Math.max(0, nextExpiry - this.now()));
+  }
+
+  private armCleanup(delayMs: number): void {
+    if (this.cleanupTimer) clearTimeout(this.cleanupTimer);
+    const boundedDelay = Math.min(delayMs, maximumTimerDelayMs);
+    this.cleanupTimer = setTimeout(() => this.runScheduledCleanup(), boundedDelay);
+    this.cleanupTimer.unref();
+  }
+
+  private runScheduledCleanup(): void {
+    this.cleanupTimer = undefined;
+    void this.enqueue(async () => {
+      await this.purgeExpiredFromDisk();
+      this.scheduleNextCleanup();
+    }).catch((error: unknown) => {
+      console.error("Could not remove expired pending Foist data; retrying.", error);
+      this.armCleanup(cleanupRetryDelayMs);
+    });
   }
 
   private async persist(): Promise<void> {
