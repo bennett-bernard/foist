@@ -4,6 +4,8 @@ All notable changes to Foist will be documented here.
 
 ## Unreleased
 
+## 0.3.1 - 2026-08-22
+
 - Enforced pending-message TTLs on disk with scheduled cleanup, startup/access
   purges, and retry handling for failed cleanup writes.
 - Added the documented OpenAI-compatible provider variables to `.env.example`.
