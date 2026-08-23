@@ -18,28 +18,16 @@ proof. Text alone cannot reliably establish who or what authored it.
 
 ## Free and open source
 
-The Community edition is officially released under the [MIT License](./LICENSE).
-You may use, copy, modify, and redistribute the software without paying Foist.
-It requires no Foist account, subscription, license key, or central Foist
-service.
+Foist is released under the [MIT License](./LICENSE). You may use, copy,
+modify, and redistribute the software without paying Foist. It requires no
+Foist account, subscription, license key, or central Foist service.
 
 Foist is self-hosted: you operate it and provide a Slack workspace, a machine
 running Node.js or Docker, and a supported model-provider API key. Slack, model
 providers, and hosting companies may impose their own limits or charges. “Free”
 describes the Foist software and license; it does not make those third-party
-services free.
-
-## Choose your edition
-
-| Edition | Slack connection | Credentials and hosting | Status |
-| --- | --- | --- | --- |
-| **Community self-hosted** | Socket Mode | You provide a Slack app, a supported model-provider key, and a machine | Released |
-| **Hosted foundation** | HTTP Events API | Single-workspace development only | Development foundation only |
-
-Only the Community self-hosted edition is a public release. The hosted entry
-point shares the same assessment core but still needs OAuth, shared storage,
-billing, and production operations before it can become a public Slack
-Marketplace service.
+services free. There is no hosted service or paid edition planned—Foist is a
+small open-source project for people who want to run the joke themselves.
 
 ## How the assessment works
 
@@ -132,9 +120,7 @@ docker run --env-file .env -v foist-data:/app/.data foist
 | Variable | Required | Default | Purpose |
 | --- | --- | --- | --- |
 | **SLACK_BOT_TOKEN** | Yes | — | Bot OAuth token |
-| **SLACK_APP_TOKEN** | Self-hosted | — | Socket Mode app token |
-| **SLACK_SIGNING_SECRET** | Hosted HTTP | — | Verifies Slack HTTP requests |
-| **PORT** | Hosted HTTP | 3000 | HTTP listener port |
+| **SLACK_APP_TOKEN** | Yes | — | Socket Mode app token |
 | **AI_PROVIDER** | No | openai | `openai`, `anthropic`, `grok`, `gemini`, or `openai-compatible` |
 | **OPENAI_API_KEY** | OpenAI | — | OpenAI key |
 | **OPENAI_MODEL** | OpenAI | gpt-5.6-terra | OpenAI model used by Foist |
@@ -192,32 +178,6 @@ explicit provider variables shown in `.env.example`. Generate a long random
 The included pending store and limiter are intended for one worker. Multiple
 replicas require shared Redis/Postgres-backed state and a distributed limiter.
 
-## Hosted HTTP development foundation
-
-This path exists so the assessment core does not need to be forked when Foist
-becomes a hosted product. It is currently for a single development workspace,
-not public installation or paid use.
-
-1. Replace `foist.example.com` in
-   [manifest.hosted.json](./manifest.hosted.json) with an HTTPS hostname that
-   routes `/slack/events` to this process.
-2. Import that manifest into a separate Slack development app and install it.
-3. Copy the hosted environment template and fill in its values:
-
-   ```bash
-   cp .env.hosted.example .env
-   ```
-
-4. Start the HTTP receiver:
-
-   ```bash
-   npm run dev:hosted
-   ```
-
-Before public distribution this mode still needs Slack OAuth, an encrypted
-database-backed installation store, shared pending/rate-limit state, billing,
-metering, onboarding, and a deletion/uninstall flow.
-
 ## Evaluate model or threshold changes
 
 Use only consenting, known-provenance examples. The runner tests the exact
@@ -250,8 +210,7 @@ in the private process described by [SECURITY.md](./SECURITY.md).
 
 - **src/app.ts** — Slack workflows, rate limits, and orchestration
 - **src/bootstrap.ts** — shared assessment-engine and handler bootstrap
-- **src/self-hosted.ts** — Community Socket Mode entry point
-- **src/hosted.ts** — single-workspace HTTP development entry point
+- **src/self-hosted.ts** — Socket Mode entry point
 - **src/foist-engine.ts** — provider-neutral assessment and drafting
 - **src/model-provider.ts** — model-provider interface
 - **src/providers/** — native OpenAI, Anthropic, Grok, Gemini, and compatible adapters
@@ -259,8 +218,7 @@ in the private process described by [SECURITY.md](./SECURITY.md).
 - **scripts/evaluate.ts** — cost-confirmed evaluation runner
 - **src/presentation.ts** — Block Kit responses and thresholds
 - **src/pending-store.ts** — atomic, expiring single-worker store
-- **manifest.json** — Community Socket Mode manifest
-- **manifest.hosted.json** — HTTP development manifest
+- **manifest.json** — Socket Mode Slack app manifest
 - **compose.yaml** — hardened self-hosted container service
 
 ## License and support

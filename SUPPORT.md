@@ -8,6 +8,4 @@ Never post Slack tokens, OpenAI API keys, real private messages, or unredacted
 personal data. Security issues should be reported privately as described in
 [SECURITY.md](./SECURITY.md).
 
-Foist is a community project maintained on a best-effort basis. The future
-hosted edition will have a separate customer-support policy before public
-distribution.
+Foist is a small open-source project maintained on a best-effort basis.

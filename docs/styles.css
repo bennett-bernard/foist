@@ -238,11 +238,6 @@ h1 {
   box-shadow: 4px 4px 0 var(--red);
 }
 
-.button-outline {
-  background: var(--white);
-  box-shadow: 4px 4px 0 var(--ink);
-}
-
 .microcopy {
   margin: 1.25rem 0 0;
   color: var(--ink-soft);
@@ -535,7 +530,7 @@ h1 {
 }
 
 .step h3,
-.edition-card h3 {
+.setup-card h3 {
   margin-bottom: 0.8rem;
   font-family: Georgia, serif;
   font-size: 1.65rem;
@@ -646,7 +641,7 @@ h1 {
   transform: rotate(-13deg);
 }
 
-.editions {
+.self-hosting {
   width: 100%;
   max-width: none;
   padding-right: max(1rem, calc((100vw - var(--max-width)) / 2));
@@ -656,39 +651,34 @@ h1 {
   border-bottom: 2px solid var(--ink);
 }
 
-.edition-grid {
+.setup-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  max-width: 780px;
+  margin: 0 auto;
+  grid-template-columns: minmax(0, 1fr);
   gap: 1.5rem;
 }
 
-.edition-card {
+.setup-card {
   display: flex;
-  min-height: 590px;
   padding: clamp(2rem, 4vw, 3.2rem);
   flex-direction: column;
   background: var(--white);
   border: 3px solid var(--ink);
 }
 
-.community-card {
+.self-host-card {
   box-shadow: 9px 9px 0 var(--red);
 }
 
-.marketplace-card {
-  background:
-    repeating-linear-gradient(-45deg, transparent 0 12px, rgba(23, 23, 19, 0.035) 12px 24px),
-    var(--white);
-}
-
-.edition-topline {
+.setup-topline {
   display: flex;
   margin-bottom: 2.4rem;
   align-items: center;
   justify-content: space-between;
 }
 
-.edition-number {
+.setup-number {
   font-family: Georgia, serif;
   font-size: 2.1rem;
   font-style: italic;
@@ -709,11 +699,7 @@ h1 {
   background: var(--acid);
 }
 
-.planned {
-  background: var(--paper-deep);
-}
-
-.edition-type {
+.setup-type {
   margin-bottom: 0.4rem;
   color: var(--red-dark);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -723,23 +709,23 @@ h1 {
   text-transform: uppercase;
 }
 
-.edition-card h3 {
+.setup-card h3 {
   margin-bottom: 1.4rem;
   font-size: clamp(2.4rem, 5vw, 4rem);
   letter-spacing: -0.045em;
 }
 
-.edition-card > p:not(.edition-type, .cost-note) {
+.setup-card > p:not(.setup-type, .cost-note) {
   color: var(--ink-soft);
 }
 
-.edition-card ul {
+.setup-card ul {
   margin: 1.3rem 0 1.5rem;
   padding: 0;
   list-style: none;
 }
 
-.edition-card li {
+.setup-card li {
   position: relative;
   padding: 0.7rem 0 0.7rem 1.8rem;
   border-top: 1px solid rgba(23, 23, 19, 0.2);
@@ -747,7 +733,7 @@ h1 {
   font-weight: 700;
 }
 
-.edition-card li::before {
+.setup-card li::before {
   position: absolute;
   left: 0.2rem;
   color: var(--red);
@@ -762,7 +748,7 @@ h1 {
   font-size: 0.68rem;
 }
 
-.edition-card .button {
+.setup-card .button {
   align-self: flex-start;
 }
 
@@ -917,7 +903,7 @@ footer a:focus-visible {
   }
 
   .steps,
-  .edition-grid {
+  .setup-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1022,15 +1008,15 @@ footer a:focus-visible {
   }
 
   .step,
-  .edition-card {
+  .setup-card {
     padding: 1.5rem;
   }
 
-  .edition-card {
+  .setup-card {
     min-height: 0;
   }
 
-  .edition-card h3 {
+  .setup-card h3 {
     font-size: 2.6rem;
   }
 
@@ -1038,7 +1024,7 @@ footer a:focus-visible {
     margin-top: 1.5rem;
   }
 
-  .edition-card .button {
+  .setup-card .button {
     width: 100%;
   }
 

@@ -4,10 +4,13 @@ All notable changes to Foist will be documented here.
 
 ## Unreleased
 
-- Clarified the Community edition's free, open-source, self-hosted release
-  status and the potential cost of required third-party services.
-- Added a static one-page project site for GitHub Pages with product, edition,
+- Clarified Foist's free, open-source, self-hosted release status and the
+  potential cost of required third-party services.
+- Added a static one-page project site for GitHub Pages with product, setup,
   and support information.
+- Removed the hosted HTTP development foundation and paid Slack Marketplace
+  roadmap. Foist is an open-source, self-hosted project with no paid edition
+  planned.
 
 ## 0.3.1 - 2026-08-22
 

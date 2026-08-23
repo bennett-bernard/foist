@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   loadAiConfig,
-  loadHostedConfig,
   loadSelfHostedConfig,
 } from "../src/config.js";
 
@@ -136,27 +135,4 @@ test("loads Socket Mode credentials separately from shared runtime config", () =
   assert.equal(config.slackBotToken, "xoxb-test");
   assert.equal(config.slackAppToken, "xapp-test");
   assert.equal(config.pendingTtlMs, 15 * 60_000);
-});
-
-test("loads the hosted HTTP port and signing secret", () => {
-  const config = loadHostedConfig({
-    OPENAI_API_KEY: "openai-key",
-    SLACK_BOT_TOKEN: "xoxb-test",
-    SLACK_SIGNING_SECRET: "signing-secret",
-  });
-
-  assert.equal(config.slackBotToken, "xoxb-test");
-  assert.equal(config.slackSigningSecret, "signing-secret");
-  assert.equal(config.port, 3000);
-});
-
-test("rejects an invalid hosted HTTP port", () => {
-  assert.throws(() =>
-    loadHostedConfig({
-      OPENAI_API_KEY: "openai-key",
-      SLACK_BOT_TOKEN: "xoxb-test",
-      SLACK_SIGNING_SECRET: "signing-secret",
-      PORT: "70000",
-    }),
-  );
 });
