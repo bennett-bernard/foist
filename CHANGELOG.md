@@ -4,6 +4,8 @@ All notable changes to Foist will be documented here.
 
 ## Unreleased
 
+## 0.4.0 - 2026-08-23
+
 - Clarified Foist's free, open-source, self-hosted release status and the
   potential cost of required third-party services.
 - Added a static one-page project site for GitHub Pages with product, setup,
