@@ -152,12 +152,6 @@ const selfHostedSlackEnvironmentSchema = z.object({
   SLACK_APP_TOKEN: z.string().startsWith("xapp-"),
 });
 
-const hostedSlackEnvironmentSchema = z.object({
-  SLACK_BOT_TOKEN: z.string().startsWith("xoxb-"),
-  SLACK_SIGNING_SECRET: z.string().min(1),
-  PORT: z.coerce.number().int().min(1).max(65_535).default(3000),
-});
-
 export interface AiConfig {
   provider: AiProviderName;
   apiKey: string;
@@ -177,12 +171,6 @@ export interface FoistRuntimeConfig {
 export interface SelfHostedConfig extends FoistRuntimeConfig {
   slackBotToken: string;
   slackAppToken: string;
-}
-
-export interface HostedConfig extends FoistRuntimeConfig {
-  slackBotToken: string;
-  slackSigningSecret: string;
-  port: number;
 }
 
 /** Backward-compatible name for integrations that imported the original config type. */
@@ -228,16 +216,6 @@ export function loadSelfHostedConfig(
     ...loadRuntimeConfig(environment),
     slackBotToken: slack.SLACK_BOT_TOKEN,
     slackAppToken: slack.SLACK_APP_TOKEN,
-  };
-}
-
-export function loadHostedConfig(environment: NodeJS.ProcessEnv = process.env): HostedConfig {
-  const slack = hostedSlackEnvironmentSchema.parse(environment);
-  return {
-    ...loadRuntimeConfig(environment),
-    slackBotToken: slack.SLACK_BOT_TOKEN,
-    slackSigningSecret: slack.SLACK_SIGNING_SECRET,
-    port: slack.PORT,
   };
 }
 

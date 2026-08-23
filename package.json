@@ -13,11 +13,9 @@
     "check": "tsc -p tsconfig.json --noEmit",
     "dev": "tsx watch src/index.ts",
     "dev:self-hosted": "tsx watch src/self-hosted.ts",
-    "dev:hosted": "tsx watch src/hosted.ts",
     "eval": "tsx scripts/evaluate.ts",
     "start": "node dist/src/self-hosted.js",
     "start:self-hosted": "node dist/src/self-hosted.js",
-    "start:hosted": "node dist/src/hosted.js",
     "test": "node --import tsx --test test/*.test.ts"
   },
   "dependencies": {
