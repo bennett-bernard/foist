@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.120.0",
-    "@google/genai": "^2.18.0",
+    "@google/genai": "^2.20.0",
     "@slack/bolt": "^5.0.0",
     "@slack/logger": "^5.0.0",
     "@slack/types": "^3.0.0",
